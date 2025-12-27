@@ -8,6 +8,7 @@ import { projectStore } from '../../project-store';
 import { getConfiguredPythonPath, PythonEnvManager } from '../../python-env-manager';
 import { getEffectiveSourcePath } from '../../auto-claude-updater';
 import { getProfileEnv } from '../../rate-limit-detector';
+import { getAPIProfileEnv } from '../../services/profile';
 import { findTaskAndProject } from './shared';
 import { parsePythonCommand } from '../../python-detector';
 
@@ -418,6 +419,14 @@ export function registerWorktreeHandlers(
           hasConfigDir: !!profileEnv.CLAUDE_CONFIG_DIR
         });
 
+        // Get active API profile environment variables (for custom endpoints)
+        let apiProfileEnv: Record<string, string> = {};
+        try {
+          apiProfileEnv = await getAPIProfileEnv();
+        } catch (error) {
+          console.error('[WorktreeHandlers] Failed to get API profile env:', error);
+        }
+
         return new Promise((resolve) => {
           const MERGE_TIMEOUT_MS = 600000; // 10 minutes timeout for AI merge operations with many files
           let timeoutId: NodeJS.Timeout | null = null;
@@ -430,6 +439,7 @@ export function registerWorktreeHandlers(
             env: {
               ...process.env,
               ...profileEnv, // Include active Claude profile OAuth token
+              ...apiProfileEnv, // API profile config (highest priority for ANTHROPIC_* vars)
               PYTHONUNBUFFERED: '1',
               PYTHONIOENCODING: 'utf-8',
               PYTHONUTF8: '1'
@@ -785,6 +795,14 @@ export function registerWorktreeHandlers(
         // Get profile environment for consistency
         const previewProfileEnv = getProfileEnv();
 
+        // Get active API profile environment variables (for custom endpoints)
+        let apiProfileEnv: Record<string, string> = {};
+        try {
+          apiProfileEnv = await getAPIProfileEnv();
+        } catch (error) {
+          console.error('[WorktreeHandlers] Failed to get API profile env:', error);
+        }
+
         return new Promise((resolve) => {
           const PREVIEW_TIMEOUT_MS = 120000; // 2 minutes timeout for preview (faster than full merge)
           let timeoutId: NodeJS.Timeout | null = null;
@@ -794,7 +812,7 @@ export function registerWorktreeHandlers(
           const [pythonCommand, pythonBaseArgs] = parsePythonCommand(pythonPath);
           const previewProcess = spawn(pythonCommand, [...pythonBaseArgs, ...args], {
             cwd: sourcePath,
-            env: { ...process.env, ...previewProfileEnv, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', DEBUG: 'true' }
+            env: { ...process.env, ...previewProfileEnv, ...apiProfileEnv, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', DEBUG: 'true' }
           });
 
           let stdout = '';

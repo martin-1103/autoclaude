@@ -84,7 +84,7 @@
     "electron-updater": "^6.6.2",
     "fastify": "^5.3.4",
     "i18next": "^25.7.3",
-    "lucide-react": "^0.560.0",
+    "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
     "octokit": "^5.0.5",
     "proper-lockfile": "^4.1.2",

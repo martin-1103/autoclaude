@@ -2,6 +2,7 @@ import path from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { app } from 'electron';
 import { getProfileEnv } from '../rate-limit-detector';
+import { getAPIProfileEnv } from '../services/profile';
 import { getConfiguredPythonPath } from '../python-env-manager';
 
 /**
@@ -104,16 +105,26 @@ export class InsightsConfig {
 
   /**
    * Get complete environment for process execution
-   * Includes system env, auto-claude env, and active Claude profile
+   * Includes system env, auto-claude env, active Claude profile, and API profile
    */
-  getProcessEnv(): Record<string, string> {
+  async getProcessEnv(): Promise<Record<string, string>> {
     const autoBuildEnv = this.loadAutoBuildEnv();
     const profileEnv = getProfileEnv();
+
+    // Get active API profile environment variables (for custom endpoints)
+    let apiProfileEnv: Record<string, string> = {};
+    try {
+      apiProfileEnv = await getAPIProfileEnv();
+    } catch (error) {
+      console.error('[InsightsConfig] Failed to get API profile env:', error);
+      // Continue with empty profile env (falls back to OAuth mode)
+    }
 
     return {
       ...process.env as Record<string, string>,
       ...autoBuildEnv,
       ...profileEnv,
+      ...apiProfileEnv,  // API profile config (highest priority for ANTHROPIC_* vars)
       PYTHONUNBUFFERED: '1',
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1'

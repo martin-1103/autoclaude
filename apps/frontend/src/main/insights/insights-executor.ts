@@ -13,6 +13,7 @@ import type {
 import { MODEL_ID_MAP } from '../../shared/constants';
 import { InsightsConfig } from './config';
 import { detectRateLimit, createSDKRateLimitInfo } from '../rate-limit-detector';
+import { parsePythonCommand } from '../python-detector';
 
 /**
  * Message processor result
@@ -84,8 +85,8 @@ export class InsightsExecutor extends EventEmitter {
       message: 'Processing your message...'
     } as InsightsChatStatus);
 
-    // Get process environment
-    const processEnv = this.config.getProcessEnv();
+    // Get process environment (now async to include API profile)
+    const processEnv = await this.config.getProcessEnv();
 
     // Write conversation history to temp file to avoid Windows command-line length limit
     const historyFile = path.join(
@@ -111,14 +112,18 @@ export class InsightsExecutor extends EventEmitter {
     ];
 
     // Add model config if provided
+    // Pass model shorthand directly to Python (opus/sonnet/haiku)
+    // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
     if (modelConfig) {
-      const modelId = MODEL_ID_MAP[modelConfig.model] || MODEL_ID_MAP['sonnet'];
-      args.push('--model', modelId);
+      args.push('--model', modelConfig.model);  // Pass shorthand, let Python resolve from env vars
       args.push('--thinking-level', modelConfig.thinkingLevel);
     }
 
     // Spawn Python process
-    const proc = spawn(this.config.getPythonPath(), args, {
+    // Parse Python command to handle space-separated commands like "py -3"
+    const pythonPath = this.config.getPythonPath();
+    const [pythonCommand, pythonBaseArgs] = parsePythonCommand(pythonPath);
+    const proc = spawn(pythonCommand, [...pythonBaseArgs, ...args], {
       cwd: autoBuildSource,
       env: processEnv
     });

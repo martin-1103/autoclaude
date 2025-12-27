@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import type { GitCommit } from '../../shared/types';
 import { getProfileEnv } from '../rate-limit-detector';
+import { getAPIProfileEnv } from '../services/profile';
 import { parsePythonCommand } from '../python-detector';
 
 interface VersionSuggestion {
@@ -50,7 +51,7 @@ export class VersionSuggester {
     const script = this.createAnalysisScript(prompt);
 
     // Build environment
-    const spawnEnv = this.buildSpawnEnvironment();
+    const spawnEnv = await this.buildSpawnEnvironment();
 
     return new Promise((resolve, _reject) => {
       // Parse Python command to handle space-separated commands like "py -3"
@@ -211,7 +212,7 @@ except Exception as e:
   /**
    * Build spawn environment with proper PATH and auth settings
    */
-  private buildSpawnEnvironment(): Record<string, string> {
+  private async buildSpawnEnvironment(): Promise<Record<string, string>> {
     const homeDir = os.homedir();
     const isWindows = process.platform === 'win32';
 
@@ -234,9 +235,18 @@ except Exception as e:
     // Get active Claude profile environment
     const profileEnv = getProfileEnv();
 
+    // Get active API profile environment variables (for custom endpoints)
+    let apiProfileEnv: Record<string, string> = {};
+    try {
+      apiProfileEnv = await getAPIProfileEnv();
+    } catch (error) {
+      console.error('[VersionSuggester] Failed to get API profile env:', error);
+    }
+
     const spawnEnv: Record<string, string> = {
       ...process.env as Record<string, string>,
       ...profileEnv,
+      ...apiProfileEnv,  // API profile config (highest priority for ANTHROPIC_* vars)
       ...(isWindows ? { USERPROFILE: homeDir } : { HOME: homeDir }),
       USER: process.env.USER || process.env.USERNAME || 'user',
       PATH: [process.env.PATH || '', ...pathAdditions].filter(Boolean).join(path.delimiter),

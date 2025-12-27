@@ -12,6 +12,7 @@ import { buildChangelogPrompt, buildGitPrompt, createGenerationScript } from './
 import { extractChangelog } from './parser';
 import { getCommits, getBranchDiffCommits } from './git-integration';
 import { detectRateLimit, createSDKRateLimitInfo, getProfileEnv } from '../rate-limit-detector';
+import { getAPIProfileEnv } from '../services/profile';
 import { parsePythonCommand } from '../python-detector';
 
 /**
@@ -138,7 +139,7 @@ export class ChangelogGenerator extends EventEmitter {
     this.debug('Spawning Python process...');
 
     // Build environment with explicit critical variables
-    const spawnEnv = this.buildSpawnEnvironment();
+    const spawnEnv = await this.buildSpawnEnvironment();
 
     // Parse Python command to handle space-separated commands like "py -3"
     const [pythonCommand, pythonBaseArgs] = parsePythonCommand(this.pythonPath);
@@ -242,7 +243,7 @@ export class ChangelogGenerator extends EventEmitter {
   /**
    * Build spawn environment with proper PATH and auth settings
    */
-  private buildSpawnEnvironment(): Record<string, string> {
+  private async buildSpawnEnvironment(): Promise<Record<string, string>> {
     const homeDir = os.homedir();
     const isWindows = process.platform === 'win32';
 
@@ -270,10 +271,19 @@ export class ChangelogGenerator extends EventEmitter {
       authMethod: profileEnv.CLAUDE_CODE_OAUTH_TOKEN ? 'oauth-token' : (profileEnv.CLAUDE_CONFIG_DIR ? 'config-dir' : 'default')
     });
 
+    // Get active API profile environment variables (for custom endpoints)
+    let apiProfileEnv: Record<string, string> = {};
+    try {
+      apiProfileEnv = await getAPIProfileEnv();
+    } catch (error) {
+      console.error('[ChangelogGenerator] Failed to get API profile env:', error);
+    }
+
     const spawnEnv: Record<string, string> = {
       ...process.env as Record<string, string>,
       ...this.autoBuildEnv,
       ...profileEnv, // Include active Claude profile config
+      ...apiProfileEnv, // API profile config (highest priority for ANTHROPIC_* vars)
       // Ensure critical env vars are set for claude CLI
       // Use USERPROFILE on Windows, HOME on Unix
       ...(isWindows ? { USERPROFILE: homeDir } : { HOME: homeDir }),

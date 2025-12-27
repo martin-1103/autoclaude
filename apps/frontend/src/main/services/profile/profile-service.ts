@@ -55,8 +55,8 @@ export function validateApiKey(apiKey: string): boolean {
 
   const trimmed = apiKey.trim();
 
-  // Too short to be a real API key
-  if (trimmed.length < 12) {
+  // Too short to be a real API key (allow shorter keys for custom proxies)
+  if (trimmed.length < 6) {
     return false;
   }
 
@@ -258,9 +258,14 @@ export async function updateProfile(input: UpdateProfileInput): Promise<APIProfi
 export async function getAPIProfileEnv(): Promise<Record<string, string>> {
   // Load profiles.json
   const file = await loadProfilesFile();
+  console.warn('[getAPIProfileEnv] Loaded profiles file:', {
+    activeProfileId: file.activeProfileId,
+    profileCount: file.profiles.length
+  });
 
   // If no active profile (null/empty), return empty object (OAuth mode)
   if (!file.activeProfileId || file.activeProfileId === '') {
+    console.warn('[getAPIProfileEnv] No active profile - using OAuth mode');
     return {};
   }
 
@@ -269,8 +274,15 @@ export async function getAPIProfileEnv(): Promise<Record<string, string>> {
 
   // If profile not found, return empty object (shouldn't happen with valid data)
   if (!profile) {
+    console.warn('[getAPIProfileEnv] Active profile not found - using OAuth mode');
     return {};
   }
+
+  console.warn('[getAPIProfileEnv] Active API profile found:', {
+    name: profile.name,
+    baseUrl: profile.baseUrl,
+    hasApiKey: !!profile.apiKey
+  });
 
   // Map profile fields to SDK env vars
   const envVars: Record<string, string> = {
@@ -292,6 +304,7 @@ export async function getAPIProfileEnv(): Promise<Record<string, string>> {
     }
   }
 
+  console.warn('[getAPIProfileEnv] Returning env vars:', Object.keys(filteredEnvVars));
   return filteredEnvVars;
 }
 

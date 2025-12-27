@@ -41,7 +41,8 @@ export function isValidApiKey(key: string): boolean {
   }
 
   const trimmed = key.trim();
-  if (trimmed.length < 12) {
+  // Allow shorter keys for custom proxies (minimum 6 characters)
+  if (trimmed.length < 6) {
     return false;
   }
 

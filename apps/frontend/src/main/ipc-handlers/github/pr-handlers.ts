@@ -225,13 +225,12 @@ function getGitHubPRSettings(): { model: string; thinkingLevel: string } {
   const featureThinking = rawSettings?.featureThinking ?? DEFAULT_FEATURE_THINKING;
 
   // Get PR-specific settings (with fallback to defaults)
-  const modelShort = featureModels.githubPrs ?? DEFAULT_FEATURE_MODELS.githubPrs;
+  const model = featureModels.githubPrs ?? DEFAULT_FEATURE_MODELS.githubPrs;
   const thinkingLevel = featureThinking.githubPrs ?? DEFAULT_FEATURE_THINKING.githubPrs;
 
-  // Convert model short name to full model ID
-  const model = MODEL_ID_MAP[modelShort] ?? MODEL_ID_MAP['opus'];
-
-  debugLog('GitHub PR settings', { modelShort, model, thinkingLevel });
+  // Return model shorthand (opus/sonnet/haiku) directly
+  // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
+  debugLog('GitHub PR settings', { model, thinkingLevel });
 
   return { model, thinkingLevel };
 }

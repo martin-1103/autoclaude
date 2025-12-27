@@ -147,13 +147,12 @@ function getGitLabMRSettings(): { model: string; thinkingLevel: string } {
   const featureThinking = rawSettings?.featureThinking ?? DEFAULT_FEATURE_THINKING;
 
   // Use GitHub PRs settings as fallback (GitLab MRs not yet in settings)
-  const modelShort = featureModels.githubPrs ?? DEFAULT_FEATURE_MODELS.githubPrs;
+  const model = featureModels.githubPrs ?? DEFAULT_FEATURE_MODELS.githubPrs;
   const thinkingLevel = featureThinking.githubPrs ?? DEFAULT_FEATURE_THINKING.githubPrs;
 
-  // Convert model short name to full model ID
-  const model = MODEL_ID_MAP[modelShort] ?? MODEL_ID_MAP['opus'];
-
-  debugLog('GitLab MR settings', { modelShort, model, thinkingLevel });
+  // Return model shorthand (opus/sonnet/haiku) directly
+  // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
+  debugLog('GitLab MR settings', { model, thinkingLevel });
 
   return { model, thinkingLevel };
 }

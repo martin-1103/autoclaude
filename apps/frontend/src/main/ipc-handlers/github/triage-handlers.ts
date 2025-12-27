@@ -197,13 +197,12 @@ function getGitHubIssuesSettings(): { model: string; thinkingLevel: string } {
   const featureThinking = rawSettings?.featureThinking ?? DEFAULT_FEATURE_THINKING;
 
   // Get Issues-specific settings (with fallback to defaults)
-  const modelShort = featureModels.githubIssues ?? DEFAULT_FEATURE_MODELS.githubIssues;
+  const model = featureModels.githubIssues ?? DEFAULT_FEATURE_MODELS.githubIssues;
   const thinkingLevel = featureThinking.githubIssues ?? DEFAULT_FEATURE_THINKING.githubIssues;
 
-  // Convert model short name to full model ID
-  const model = MODEL_ID_MAP[modelShort] ?? MODEL_ID_MAP['opus'];
-
-  debugLog('GitHub Issues settings', { modelShort, model, thinkingLevel });
+  // Return model shorthand (opus/sonnet/haiku) directly
+  // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
+  debugLog('GitHub Issues settings', { model, thinkingLevel });
 
   return { model, thinkingLevel };
 }

@@ -94,9 +94,10 @@ export class AgentQueueManager {
     }
 
     // Add model and thinking level from config
+    // Pass model shorthand directly to Python (opus/sonnet/haiku)
+    // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
     if (config?.model) {
-      const modelId = MODEL_ID_MAP[config.model] || MODEL_ID_MAP['opus'];
-      args.push('--model', modelId);
+      args.push('--model', config.model);  // Pass shorthand, let Python resolve from env vars
     }
     if (config?.thinkingLevel) {
       args.push('--thinking-level', config.thinkingLevel);
@@ -170,9 +171,10 @@ export class AgentQueueManager {
     }
 
     // Add model and thinking level from config
+    // Pass model shorthand directly to Python (opus/sonnet/haiku)
+    // Python will resolve to full model ID using env vars (ANTHROPIC_DEFAULT_*_MODEL) first
     if (config.model) {
-      const modelId = MODEL_ID_MAP[config.model] || MODEL_ID_MAP['opus'];
-      args.push('--model', modelId);
+      args.push('--model', config.model);  // Pass shorthand, let Python resolve from env vars
     }
     if (config.thinkingLevel) {
       args.push('--thinking-level', config.thinkingLevel);

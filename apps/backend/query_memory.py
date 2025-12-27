@@ -89,9 +89,11 @@ def get_db_connection(db_path: str, database: str):
             import real_ladybug as kuzu
 
         full_path = Path(db_path) / database
-        if not full_path.exists():
-            return None, f"Database not found at {full_path}"
 
+        # Create parent directory if it doesn't exist
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Kuzu/LadybugDB will create the database if it doesn't exist
         db = kuzu.Database(str(full_path))
         conn = kuzu.Connection(db)
         return conn, None

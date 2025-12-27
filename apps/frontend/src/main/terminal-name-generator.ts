@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { app } from 'electron';
 import { EventEmitter } from 'events';
 import { detectRateLimit, createSDKRateLimitInfo, getProfileEnv } from './rate-limit-detector';
+import { getAPIProfileEnv } from './services/profile';
 import { parsePythonCommand } from './python-detector';
 import { pythonEnvManager } from './python-env-manager';
 
@@ -144,6 +145,14 @@ export class TerminalNameGenerator extends EventEmitter {
     // Get active Claude profile environment (CLAUDE_CONFIG_DIR if not default)
     const profileEnv = getProfileEnv();
 
+    // Get active API profile environment variables (for custom endpoints)
+    let apiProfileEnv: Record<string, string> = {};
+    try {
+      apiProfileEnv = await getAPIProfileEnv();
+    } catch (error) {
+      console.error('[TerminalNameGenerator] Failed to get API profile env:', error);
+    }
+
     return new Promise((resolve) => {
       // Use the venv Python where claude_agent_sdk is installed
       const [pythonCommand, pythonBaseArgs] = parsePythonCommand(venvPythonPath);
@@ -153,6 +162,7 @@ export class TerminalNameGenerator extends EventEmitter {
           ...process.env,
           ...autoBuildEnv,
           ...profileEnv, // Include active Claude profile config
+          ...apiProfileEnv, // API profile config (highest priority for ANTHROPIC_* vars)
           PYTHONUNBUFFERED: '1',
           PYTHONIOENCODING: 'utf-8',
           PYTHONUTF8: '1'
